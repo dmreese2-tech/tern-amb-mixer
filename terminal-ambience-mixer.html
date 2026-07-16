@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Terminal Ambience Mixer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root{
+  --bg-panel: #1c1c1e;
+  --bg-panel-alt: #242426;
+  --bg-well: #0d0d0e;
+  --accent-amber: #e8c547;
+  --accent-green: #3ecf6e;
+  --accent-red: #e8544a;
+  --text-primary: #d8d8d2;
+  --text-dim: #7a7a72;
+}
+
+*{ box-sizing:border-box; }
+
+body{
+  margin:0;
+  padding:24px 12px;
+  background:transparent;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: var(--text-primary);
+  display:flex;
+  justify-content:center;
+}
+
+.rack{
+  width:100%;
+  max-width:960px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 3px),
+    linear-gradient(180deg, var(--bg-panel-alt), var(--bg-panel));
+  border-radius:10px;
+  border:1px solid #0a0a0a;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+  padding:20px 22px 24px;
+}
+
+.panel-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid #0a0a0a;
+  padding-bottom:14px;
+  margin-bottom:18px;
+}
+.brand-name{
+  font-family:'JetBrains Mono', monospace;
+  font-weight:700;
+  font-size:15px;
+  letter-spacing:2.5px;
+}
+.brand-model{
+  display:block;
+  font-family:'JetBrains Mono', monospace;
+  font-size:9px;
+  letter-spacing:1.3px;
+  color:var(--text-dim);
+  margin-top:3px;
+}
+.power-light{
+  width:10px; height:10px;
+  border-radius:50%;
+  background:#3a1414;
+  box-shadow: inset 0 0 2px rgba(0,0,0,0.8);
+  transition: all 0.3s;
+}
+.power-light.on{
+  background: var(--accent-green);
+  box-shadow: 0 0 8px var(--accent-green), 0 0 2px var(--accent-green);
+}
+
+.strips{
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+  justify-content:center;
+  padding:16px 10px;
+  background: var(--bg-well);
+  border-radius:8px;
+  border:1px solid #050505;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
+}
+
+.strip{
+  flex:1 1 190px;
+  max-width:220px;
+  min-width:170px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  background: linear-gradient(180deg, #201f21, #1a191b);
+  border:1px solid #0a0a0a;
+  border-radius:6px;
+  padding:12px 10px 14px;
+}
+.strip.master{ border-color: rgba(232,197,71,0.25); }
+
+.strip-label{
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:2px;
+  margin-bottom:10px;
+}
+
+.meter{ border-radius:2px; margin-bottom:10px; display:block; }
+
+.fader-wrap{ width:44px; height:130px; position:relative; margin-bottom:8px; }
+.fader{
+  position:absolute; top:50%; left:50%;
+  width:130px; height:26px;
+  transform: translate(-50%,-50%) rotate(-90deg);
+  margin:0; -webkit-appearance:none; appearance:none; background:transparent; cursor:pointer;
+}
+.fader::-webkit-slider-runnable-track{
+  height:5px; border-radius:3px; opacity:0.55;
+  background: linear-gradient(90deg, var(--accent-green), var(--accent-amber) 70%, var(--accent-red));
+}
+.fader::-webkit-slider-thumb{
+  -webkit-appearance:none; width:26px; height:15px; margin-top:-5px;
+  background: linear-gradient(180deg,#ececE6,#b6b6ae);
+  border:1px solid #050505; border-radius:3px; box-shadow:0 1px 2px rgba(0,0,0,0.7);
+}
+.fader::-moz-range-track{
+  height:5px; border-radius:3px; opacity:0.55;
+  background: linear-gradient(90deg, var(--accent-green), var(--accent-amber) 70%, var(--accent-red));
+}
+.fader::-moz-range-thumb{
+  width:26px; height:15px;
+  background: linear-gradient(180deg,#ececE6,#b6b6ae);
+  border:1px solid #050505; border-radius:3px;
+}
+
+.readout{ font-family:'JetBrains Mono', monospace; font-size:12px; color: var(--accent-amber); margin-bottom:2px; }
+.sublabel{ font-family:'JetBrains Mono', monospace; font-size:8px; letter-spacing:1.5px; color: var(--text-dim); }
+
+.knob-row{ width:100%; margin-top:12px; text-align:center; }
+.knob-row label{
+  display:block; font-family:'JetBrains Mono', monospace; font-size:8px;
+  letter-spacing:1.2px; color:var(--text-dim); margin-bottom:4px;
+}
+.knob-row input[type=range]{
+  width:100%; -webkit-appearance:none; appearance:none; height:4px;
+  background:#050505; border-radius:2px; outline:none;
+}
+.knob-row input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:12px; height:12px; border-radius:50%;
+  background: var(--accent-amber); border:1px solid #050505; cursor:pointer;
+}
+.knob-row input[type=range]::-moz-range-thumb{
+  width:12px; height:12px; border-radius:50%;
+  background: var(--accent-amber); border:1px solid #050505; cursor:pointer;
+}
+
+.sample-slot{
+  width:100%;
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px dashed #333;
+}
+.sample-slot label.slot-title{
+  display:block; font-family:'JetBrains Mono', monospace; font-size:8px;
+  letter-spacing:1.2px; color:var(--text-dim); margin-bottom:6px; text-align:center;
+}
+.load-btn{
+  display:block; width:100%;
+  font-family:'JetBrains Mono', monospace; font-size:9.5px; letter-spacing:1px;
+  padding:7px 4px; text-align:center;
+  background: linear-gradient(180deg, #34333588, #1e1d1f);
+  border:1px solid #3a3a3a; border-radius:4px;
+  color: var(--text-primary); cursor:pointer;
+}
+.load-btn:hover{ border-color: var(--accent-amber); }
+.file-list{
+  margin-top:6px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:8.5px;
+  color: var(--text-dim);
+  text-align:center;
+  line-height:1.5;
+  word-break:break-all;
+  max-height:48px;
+  overflow-y:auto;
+}
+.file-list.has-files{ color: var(--accent-green); }
+.clear-link{
+  display:block; margin-top:4px; text-align:center;
+  font-family:'JetBrains Mono', monospace; font-size:8px;
+  color: var(--accent-red); cursor:pointer; letter-spacing:1px;
+}
+input[type=file]{ display:none; }
+
+.transport{ display:flex; align-items:center; gap:12px; margin-top:20px; }
+button{
+  font-family:'JetBrains Mono', monospace; font-size:11px; font-weight:700; letter-spacing:1.5px;
+  padding:10px 18px; border-radius:5px; border:1px solid #050505; cursor:pointer; transition: all 0.15s;
+}
+#playBtn{ background: linear-gradient(180deg, #4fdb85, #2fa863); color:#0a1c10; }
+#playBtn:disabled{ background:#333; color:#666; cursor:not-allowed; }
+#stopBtn{ background: linear-gradient(180deg, #ea6b60, #c23f34); color:#2a0805; }
+#stopBtn:disabled{ background:#333; color:#666; cursor:not-allowed; }
+.status{ font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:2px; color: var(--text-dim); margin-left:auto; }
+
+.export{ margin-top:22px; padding:16px; background: var(--bg-well); border-radius:8px; border:1px solid #050505; }
+.export-title{ font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:2px; color: var(--accent-amber); margin-bottom:12px; }
+.export-row{ display:flex; gap:10px; flex-wrap:wrap; }
+select{
+  font-family:'JetBrains Mono', monospace; font-size:11px;
+  background: var(--bg-panel-alt); color: var(--text-primary);
+  border:1px solid #050505; border-radius:5px; padding:9px 12px;
+}
+#exportBtn{ background: linear-gradient(180deg, #f0d060, #c9a52f); color:#241c05; flex:1; min-width:200px; }
+#exportBtn:disabled{ background:#333; color:#666; cursor:not-allowed; }
+.progress-track{ height:5px; background:#050505; border-radius:3px; margin-top:12px; overflow:hidden; }
+.progress-fill{ height:100%; width:0%; background: linear-gradient(90deg, var(--accent-green), var(--accent-amber)); transition: width 0.3s; }
+.export-note{ font-family: system-ui, sans-serif; font-size:11.5px; color: var(--text-dim); margin-top:10px; line-height:1.4; }
+
+@media (max-width:520px){ .strip{ min-width:140px; } }
+</style>
+</head>
+<body>
+
+<div class="rack">
+  <div class="panel-header">
+    <div>
+      <span class="brand-name">TERMINAL AMBIENCE</span>
+      <span class="brand-model">MODEL TA-2 &middot; SAMPLE-BASED MIXER &middot; LOAD YOUR OWN LICENSED CLIPS</span>
+    </div>
+    <div class="power-light" id="powerLight" title="engine status"></div>
+  </div>
+
+  <div class="strips">
+    <div class="strip" data-strip="crowd">
+      <div class="strip-label">CROWD</div>
+      <canvas class="meter" id="meterCrowd" width="18" height="110"></canvas>
+      <div class="fader-wrap"><input type="range" class="fader" id="crowdLevel" min="0" max="100" value="70"></div>
+      <div class="readout" id="crowdReadout">70</div>
+      <div class="sublabel">LEVEL</div>
+      <div class="sample-slot">
+        <label class="slot-title">CROWD LOOP (1 FILE)</label>
+        <label class="load-btn" for="crowdFile">LOAD SAMPLE</label>
+        <input type="file" id="crowdFile" accept="audio/*">
+        <div class="file-list" id="crowdFileList">no sample loaded</div>
+      </div>
+    </div>
+
+    <div class="strip" data-strip="equipment">
+      <div class="strip-label">EQUIPMENT</div>
+      <canvas class="meter" id="meterEquip" width="18" height="110"></canvas>
+      <div class="fader-wrap"><input type="range" class="fader" id="equipLevel" min="0" max="100" value="55"></div>
+      <div class="readout" id="equipReadout">55</div>
+      <div class="sublabel">LEVEL</div>
+      <div class="knob-row">
+        <label>DENSITY (EVENTS/MIN)</label>
+        <input type="range" id="equipDensity" min="1" max="10" value="4">
+      </div>
+      <div class="sample-slot">
+        <label class="slot-title">ONE-SHOTS (MULTIPLE OK)</label>
+        <label class="load-btn" for="equipFile">ADD SAMPLE(S)</label>
+        <input type="file" id="equipFile" accept="audio/*" multiple>
+        <div class="file-list" id="equipFileList">no samples loaded</div>
+        <span class="clear-link" id="equipClear">CLEAR</span>
+      </div>
+    </div>
+
+    <div class="strip" data-strip="announce">
+      <div class="strip-label">PA ANNOUNCE</div>
+      <canvas class="meter" id="meterAnnounce" width="18" height="110"></canvas>
+      <div class="fader-wrap"><input type="range" class="fader" id="announceLevel" min="0" max="100" value="65"></div>
+      <div class="readout" id="announceReadout">65</div>
+      <div class="sublabel">LEVEL</div>
+      <div class="knob-row">
+        <label>AVG GAP (SEC)</label>
+        <input type="range" id="announceInterval" min="20" max="150" value="60">
+      </div>
+      <div class="sample-slot">
+        <label class="slot-title">VOICE CLIPS (MULTIPLE OK)</label>
+        <label class="load-btn" for="announceFile">ADD SAMPLE(S)</label>
+        <input type="file" id="announceFile" accept="audio/*" multiple>
+        <div class="file-list" id="announceFileList">no samples loaded</div>
+        <span class="clear-link" id="announceClear">CLEAR</span>
+      </div>
+    </div>
+
+    <div class="strip master" data-strip="master">
+      <div class="strip-label">MASTER</div>
+      <canvas class="meter" id="meterMaster" width="18" height="110"></canvas>
+      <div class="fader-wrap"><input type="range" class="fader" id="masterLevel" min="0" max="100" value="80"></div>
+      <div class="readout" id="masterReadout">80</div>
+      <div class="sublabel">LEVEL</div>
+      <div class="knob-row">
+        <label>ROOM SIZE</label>
+        <input type="range" id="reverbAmt" min="0" max="100" value="25">
+      </div>
+      <div class="knob-row">
+        <label>PA CHIME</label>
+        <input type="range" id="chimeAmt" min="0" max="100" value="70">
+      </div>
+    </div>
+  </div>
+
+  <div class="transport">
+    <button id="playBtn">&#9654; START</button>
+    <button id="stopBtn" disabled>&#9632; STOP</button>
+    <div class="status" id="status">STOPPED</div>
+  </div>
+
+  <div class="export">
+    <div class="export-title">EXPORT LOOP FILE (WAV)</div>
+    <div class="export-row">
+      <select id="exportDuration">
+        <option value="60">1 minute</option>
+        <option value="120">2 minutes</option>
+        <option value="300" selected>5 minutes</option>
+        <option value="600">10 minutes</option>
+      </select>
+      <button id="exportBtn">RENDER &amp; DOWNLOAD WAV</button>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="export-note" id="exportNote">Load a crowd loop, some equipment one-shots, and a voice clip or two above (drag in real recordings — see the links in chat), then hit Start to audition or Export to render a loop file for QLab/vMix. The chime before each announcement is the only synthesized element left; everything else is your real audio, mixed and randomly scheduled.</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+
+  let audioCtx = null;
+  let decodeCtx = null;
+  let running = false;
+  let liveGraphNodes = null;
+  let liveCrowdSrc = null;
+  let timers = [];
+  let meterRAF = null;
+
+  const state = {
+    crowdBuffer: null,
+    equipBuffers: [],
+    announceBuffers: []
+  };
+
+  function getDecodeCtx(){
+    if(!decodeCtx){
+      decodeCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return decodeCtx;
+  }
+
+  function decodeFile(file){
+    const ctx = getDecodeCtx();
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        ctx.decodeAudioData(reader.result, resolve, reject);
+      };
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  // ---------- Reverb IR (the only remaining synthesis besides the chime) ----------
+
+  function createReverbImpulse(ctx, seconds, decay){
+    seconds = seconds || 2.0;
+    decay = decay || 3.2;
+    const length = Math.floor(ctx.sampleRate * seconds);
+    const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
+    for(let ch=0; ch<2; ch++){
+      const data = impulse.getChannelData(ch);
+      for(let i=0;i<length;i++){
+        data[i] = (Math.random()*2-1) * Math.pow(1 - i/length, decay);
+      }
+    }
+    return impulse;
+  }
+
+  // ---------- Graph ----------
+
+  function buildGraph(ctx){
+    const crowdGain = ctx.createGain(); crowdGain.gain.value = $('crowdLevel').value/100;
+    const equipGain = ctx.createGain(); equipGain.gain.value = $('equipLevel').value/100;
+    const announceGain = ctx.createGain(); announceGain.gain.value = $('announceLevel').value/100;
+
+    const dryBus = ctx.createGain();
+    const wetBus = ctx.createGain();
+    const reverb = ctx.createConvolver();
+    reverb.buffer = createReverbImpulse(ctx);
+    const reverbSend = ctx.createGain();
+    reverbSend.gain.value = $('reverbAmt').value/100;
+
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.value = -18;
+    compressor.ratio.value = 3;
+
+    const masterGain = ctx.createGain();
+    masterGain.gain.value = $('masterLevel').value/100;
+
+    crowdGain.connect(dryBus);
+    equipGain.connect(dryBus);
+    announceGain.connect(dryBus);
+
+    crowdGain.connect(reverbSend);
+    equipGain.connect(reverbSend);
+    announceGain.connect(reverbSend);
+    reverbSend.connect(reverb);
+    reverb.connect(wetBus);
+
+    dryBus.connect(compressor);
+    wetBus.connect(compressor);
+    compressor.connect(masterGain);
+    masterGain.connect(ctx.destination);
+
+    return { crowdGain, equipGain, announceGain, reverbSend, masterGain, compressor };
+  }
+
+  // ---------- Sample playback helpers ----------
+
+  function startCrowdLoop(ctx, out, buffer){
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.loop = true;
+    src.connect(out);
+    src.start();
+    return src;
+  }
+
+  function playOneShot(ctx, out, buffer, when, opts){
+    opts = opts || {};
+    const pitch = opts.pitch || 1;
+    const pan = (typeof opts.pan === 'number') ? opts.pan : (Math.random()*2-1);
+    const gainAmt = (typeof opts.gain === 'number') ? opts.gain : 1;
+
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.playbackRate.value = pitch;
+
+    const panner = ctx.createStereoPanner();
+    panner.pan.value = pan;
+
+    const g = ctx.createGain();
+    const dur = buffer.duration / pitch;
+    const fadeIn = Math.min(0.02, dur*0.1);
+    const fadeOut = Math.min(0.05, dur*0.1);
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.linearRampToValueAtTime(gainAmt, when+fadeIn);
+    g.gain.setValueAtTime(gainAmt, Math.max(when+fadeIn, when+dur-fadeOut));
+    g.gain.linearRampToValueAtTime(0.0001, when+dur);
+
+    src.connect(panner).connect(g).connect(out);
+    src.start(when);
+    src.stop(when+dur+0.05);
+    return dur;
+  }
+
+  function pickRandom(arr){
+    return arr[Math.floor(Math.random()*arr.length)];
+  }
+
+  // ---------- PA chime (synthesized tone only) ----------
+
+  function triggerChime(ctx, out, when, level){
+    if(level <= 0) return 1.9;
+    const notes = [783.99, 659.25, 523.25, 659.25];
+    notes.forEach((freq, i)=>{
+      const t = when + i*0.38;
+      const osc = ctx.createOscillator(); osc.type='sine'; osc.frequency.value=freq;
+      const osc2 = ctx.createOscillator(); osc2.type='sine'; osc2.frequency.value=freq*2;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.25*level, t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.9);
+      const g2 = ctx.createGain(); g2.gain.value=0.06;
+      osc.connect(g); osc2.connect(g2); g2.connect(g);
+      const bp = ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1400; bp.Q.value=0.7;
+      g.connect(bp).connect(out);
+      osc.start(t); osc.stop(t+1);
+      osc2.start(t); osc2.stop(t+1);
+    });
+    return 1.9;
+  }
+
+  function triggerAnnouncement(ctx, out, when){
+    if(state.announceBuffers.length === 0) return;
+    const chimeLevel = $('chimeAmt').value/100;
+    const gap = triggerChime(ctx, out, when, chimeLevel);
+    const buffer = pickRandom(state.announceBuffers);
+    playOneShot(ctx, out, buffer, when+gap, { pitch:1, pan:0, gain:1 });
+  }
+
+  function triggerEquipment(ctx, out, when){
+    if(state.equipBuffers.length === 0) return;
+    const buffer = pickRandom(state.equipBuffers);
+    playOneShot(ctx, out, buffer, when, {
+      pitch: 0.95 + Math.random()*0.1,
+      gain: 0.75 + Math.random()*0.25
+    });
+  }
+
+  // ---------- Live scheduling ----------
+
+  function startLiveScheduler(ctx, nodes){
+    if(state.crowdBuffer){
+      liveCrowdSrc = startCrowdLoop(ctx, nodes.crowdGain, state.crowdBuffer);
+    }
+
+    function scheduleEquip(){
+      if(!running) return;
+      if(state.equipBuffers.length > 0){
+        triggerEquipment(ctx, nodes.equipGain, ctx.currentTime+0.1);
+      }
+      const density = parseFloat($('equipDensity').value);
+      const avgGap = 60/density;
+      const nextMs = (avgGap*0.5 + Math.random()*avgGap) * 1000;
+      timers.push(setTimeout(scheduleEquip, nextMs));
+    }
+    timers.push(setTimeout(scheduleEquip, 800));
+
+    function scheduleAnnounce(){
+      if(!running) return;
+      if(state.announceBuffers.length > 0){
+        triggerAnnouncement(ctx, nodes.announceGain, ctx.currentTime+0.2);
+      }
+      const base = parseFloat($('announceInterval').value);
+      const nextMs = (base*0.6 + Math.random()*base*0.8)*1000;
+      timers.push(setTimeout(scheduleAnnounce, nextMs));
+    }
+    timers.push(setTimeout(scheduleAnnounce, 4000+Math.random()*4000));
+  }
+
+  // ---------- Meters ----------
+
+  function setupMeters(ctx, nodes){
+    const keys = ['crowdGain','equipGain','announceGain','masterGain'];
+    const canvasMap = {
+      crowdGain: $('meterCrowd'), equipGain: $('meterEquip'),
+      announceGain: $('meterAnnounce'), masterGain: $('meterMaster')
+    };
+    const analysers = {};
+    keys.forEach(key=>{
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      nodes[key].connect(analyser);
+      analysers[key] = analyser;
+    });
+
+    function draw(){
+      if(!running){ meterRAF = null; return; }
+      keys.forEach(key=>{
+        const analyser = analysers[key];
+        const data = new Uint8Array(analyser.fftSize);
+        analyser.getByteTimeDomainData(data);
+        let sum=0;
+        for(let i=0;i<data.length;i++){ const v=(data[i]-128)/128; sum+=v*v; }
+        const rms = Math.sqrt(sum/data.length);
+        drawMeter(canvasMap[key], rms);
+      });
+      meterRAF = requestAnimationFrame(draw);
+    }
+    draw();
+  }
+
+  function drawMeter(canvas, level){
+    if(!canvas) return;
+    const ctx2 = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx2.clearRect(0,0,w,h);
+    ctx2.fillStyle = '#0a0a0b';
+    ctx2.fillRect(0,0,w,h);
+    const barH = Math.min(h, level*h*3.2);
+    const grad = ctx2.createLinearGradient(0,h,0,0);
+    grad.addColorStop(0,'#3ecf6e');
+    grad.addColorStop(0.7,'#e8c547');
+    grad.addColorStop(1,'#e8544a');
+    ctx2.fillStyle = grad;
+    ctx2.fillRect(2, h-barH, w-4, barH);
+  }
+
+  // ---------- File loading UI ----------
+
+  function shortName(name){
+    return name.length > 26 ? name.slice(0,23)+'...' : name;
+  }
+
+  $('crowdFile').addEventListener('change', async e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    $('crowdFileList').textContent = 'decoding...';
+    try{
+      const buf = await decodeFile(file);
+      state.crowdBuffer = buf;
+      $('crowdFileList').textContent = shortName(file.name);
+      $('crowdFileList').classList.add('has-files');
+      if(running && liveGraphNodes){
+        if(liveCrowdSrc){ try{ liveCrowdSrc.stop(); }catch(err){} }
+        liveCrowdSrc = startCrowdLoop(audioCtx, liveGraphNodes.crowdGain, buf);
+      }
+    }catch(err){
+      $('crowdFileList').textContent = 'could not decode file';
+    }
+    e.target.value = '';
+  });
+
+  function bindMultiLoader(inputId, listId, clearId, bucketKey){
+    $(inputId).addEventListener('change', async e=>{
+      const files = Array.from(e.target.files);
+      if(files.length === 0) return;
+      $(listId).textContent = 'decoding ' + files.length + ' file(s)...';
+      for(const file of files){
+        try{
+          const buf = await decodeFile(file);
+          state[bucketKey].push(buf);
+        }catch(err){ /* skip failed file */ }
+      }
+      renderList();
+      e.target.value = '';
+    });
+    $(clearId).addEventListener('click', ()=>{
+      state[bucketKey] = [];
+      renderList();
+    });
+    function renderList(){
+      const count = state[bucketKey].length;
+      const el = $(listId);
+      if(count === 0){
+        el.textContent = 'no samples loaded';
+        el.classList.remove('has-files');
+      } else {
+        el.textContent = count + ' sample(s) loaded';
+        el.classList.add('has-files');
+      }
+    }
+  }
+  bindMultiLoader('equipFile','equipFileList','equipClear','equipBuffers');
+  bindMultiLoader('announceFile','announceFileList','announceClear','announceBuffers');
+
+  // ---------- Transport ----------
+
+  $('playBtn').addEventListener('click', function(){
+    if(running) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    liveGraphNodes = buildGraph(audioCtx);
+    running = true;
+    setupMeters(audioCtx, liveGraphNodes);
+    startLiveScheduler(audioCtx, liveGraphNodes);
+    $('playBtn').disabled = true;
+    $('stopBtn').disabled = false;
+    $('status').textContent = 'RUNNING';
+    $('powerLight').classList.add('on');
+  });
+
+  $('stopBtn').addEventListener('click', function(){
+    running = false;
+    timers.forEach(t=>clearTimeout(t));
+    timers = [];
+    if(liveCrowdSrc){ try{ liveCrowdSrc.stop(); }catch(e){} liveCrowdSrc = null; }
+    if(meterRAF){ cancelAnimationFrame(meterRAF); meterRAF = null; }
+    if(audioCtx){ audioCtx.close(); audioCtx = null; }
+    liveGraphNodes = null;
+    $('playBtn').disabled = false;
+    $('stopBtn').disabled = true;
+    $('status').textContent = 'STOPPED';
+    $('powerLight').classList.remove('on');
+  });
+
+  // ---------- Live fader bindings ----------
+
+  $('crowdLevel').addEventListener('input', e=>{
+    $('crowdReadout').textContent = e.target.value;
+    if(liveGraphNodes) liveGraphNodes.crowdGain.gain.value = e.target.value/100;
+  });
+  $('equipLevel').addEventListener('input', e=>{
+    $('equipReadout').textContent = e.target.value;
+    if(liveGraphNodes) liveGraphNodes.equipGain.gain.value = e.target.value/100;
+  });
+  $('announceLevel').addEventListener('input', e=>{
+    $('announceReadout').textContent = e.target.value;
+    if(liveGraphNodes) liveGraphNodes.announceGain.gain.value = e.target.value/100;
+  });
+  $('masterLevel').addEventListener('input', e=>{
+    $('masterReadout').textContent = e.target.value;
+    if(liveGraphNodes) liveGraphNodes.masterGain.gain.value = e.target.value/100;
+  });
+  $('reverbAmt').addEventListener('input', e=>{
+    if(liveGraphNodes) liveGraphNodes.reverbSend.gain.value = e.target.value/100;
+  });
+
+  // ---------- WAV encoding ----------
+
+  function audioBufferToWav(buffer){
+    const numChannels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const bitDepth = 16;
+
+    let interleaved;
+    if(numChannels === 2){
+      interleaved = interleave(buffer.getChannelData(0), buffer.getChannelData(1));
+    } else {
+      interleaved = buffer.getChannelData(0);
+    }
+
+    const dataLength = interleaved.length * (bitDepth/8);
+    const arrBuffer = new ArrayBuffer(44+dataLength);
+    const view = new DataView(arrBuffer);
+
+    writeString(view,0,'RIFF');
+    view.setUint32(4, 36+dataLength, true);
+    writeString(view,8,'WAVE');
+    writeString(view,12,'fmt ');
+    view.setUint32(16,16,true);
+    view.setUint16(20,1,true);
+    view.setUint16(22,numChannels,true);
+    view.setUint32(24,sampleRate,true);
+    view.setUint32(28,sampleRate*numChannels*bitDepth/8,true);
+    view.setUint16(32,numChannels*bitDepth/8,true);
+    view.setUint16(34,bitDepth,true);
+    writeString(view,36,'data');
+    view.setUint32(40,dataLength,true);
+
+    floatTo16BitPCM(view,44,interleaved);
+    return new Blob([view], {type:'audio/wav'});
+  }
+
+  function interleave(left,right){
+    const length = left.length+right.length;
+    const result = new Float32Array(length);
+    let idx=0, i=0;
+    while(i<left.length){
+      result[idx++]=left[i];
+      result[idx++]=right[i];
+      i++;
+    }
+    return result;
+  }
+
+  function floatTo16BitPCM(view, offset, input){
+    for(let i=0;i<input.length;i++, offset+=2){
+      let s = Math.max(-1, Math.min(1, input[i]));
+      s = s<0 ? s*0x8000 : s*0x7FFF;
+      view.setInt16(offset, s, true);
+    }
+  }
+
+  function writeString(view, offset, str){
+    for(let i=0;i<str.length;i++) view.setUint8(offset+i, str.charCodeAt(i));
+  }
+
+  // ---------- Export ----------
+
+  $('exportBtn').addEventListener('click', async function(){
+    if(!state.crowdBuffer && state.equipBuffers.length===0 && state.announceBuffers.length===0){
+      $('exportNote').textContent = 'Load at least one sample above before exporting.';
+      return;
+    }
+
+    const duration = parseInt($('exportDuration').value, 10);
+    $('exportBtn').disabled = true;
+    $('exportNote').textContent = 'Rendering \u2014 please wait...';
+    $('progressFill').style.width = '10%';
+
+    try{
+      const sampleRate = 44100;
+      const offlineCtx = new OfflineAudioContext(2, duration*sampleRate, sampleRate);
+      const nodes = buildGraph(offlineCtx);
+
+      if(state.crowdBuffer){
+        startCrowdLoop(offlineCtx, nodes.crowdGain, state.crowdBuffer);
+      }
+
+      if(state.equipBuffers.length > 0){
+        const density = parseFloat($('equipDensity').value);
+        let t = 1 + Math.random()*3;
+        while(t < duration - 1){
+          triggerEquipment(offlineCtx, nodes.equipGain, t);
+          const avgGap = 60/density;
+          t += avgGap*0.5 + Math.random()*avgGap;
+        }
+      }
+
+      if(state.announceBuffers.length > 0){
+        const interval = parseFloat($('announceInterval').value);
+        let ta = 5 + Math.random()*10;
+        while(ta < duration - 6){
+          triggerAnnouncement(offlineCtx, nodes.announceGain, ta);
+          ta += interval*0.6 + Math.random()*interval*0.8;
+        }
+      }
+
+      $('progressFill').style.width = '45%';
+      const rendered = await offlineCtx.startRendering();
+      $('progressFill').style.width = '85%';
+
+      const wavBlob = audioBufferToWav(rendered);
+      const url = URL.createObjectURL(wavBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'airport-ambience-' + duration + 's.wav';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 4000);
+
+      $('progressFill').style.width = '100%';
+      $('exportNote').textContent = 'Done \u2014 file downloaded. Loop it in QLab/vMix for the run of the show.';
+    } catch(err){
+      $('exportNote').textContent = 'Render failed: ' + err.message;
+    } finally {
+      $('exportBtn').disabled = false;
+      setTimeout(()=>{ $('progressFill').style.width = '0%'; }, 1800);
+    }
+  });
+
+})();
+</script>
+</body>
+</html>
